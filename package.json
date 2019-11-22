@@ -1,0 +1,18 @@
+{
+  "name": "v0.01",
+  "version": "1.0.0",
+  "description": "CONECTOR MONGODB ",
+  "main": "server.js",
+  "scripts": {
+    "server": "nodemon server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "abdiel Flores",
+  "license": "MIT",
+  "dependencies": {
+    "mongodb": "^3.3.4",
+    "mongoose": "^5.7.12",
+    "nodemon": "^2.0.0",
+    "plugdo-node": "^1.0.2"
+  }
+}
