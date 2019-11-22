@@ -14,9 +14,9 @@ plugdo.collector("mongodbTest", {
   server: serverConnect,
   collection: "Plugdo",
   nameModel :"modelPlugdo",
-  actiondb: "Insert",
+  actiondb: "update",
   Schemadb: [{
     id_Curso: { type: String, require: true }
   }],
-  parameter : ['json:id']
+  parameter : []
 });
