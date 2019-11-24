@@ -7,16 +7,27 @@ var serverConnect =  {
   options: "retryWrites=true&w=majority"
 } 
 
-
+var serverConnectdev =  {
+  user: "",
+  password: "",
+  host: "mongodb://localhost:27017",
+  db: "Plugdo",
+  options: ""
+} 
 plugdo.collector("mongodbTest", {
   type: "db",
   action: "mongodb",
-  server: serverConnect,
-  collection: "Plugdo",
-  nameModel :"modelPlugdo",
-  actiondb: "update",
-  Schemadb: [{
-    id_Curso: { type: String, require: true }
+  server: serverConnectdev,
+  collection: "test2Plugdo",
+  model :"modelPlugdo2",
+  queryType: "save",
+  mode:"dev",
+  schema: [{
+    id_Curso: { type: String, require: true },
+    nombre: { type: String, require: true },
+    apellido: { type: String, require: true }
   }],
   parameter : []
 });
+
+

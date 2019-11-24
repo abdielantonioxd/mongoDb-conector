@@ -1,8 +1,13 @@
 const mongoose = require('mongoose');
-// const jr = require("./plugdo-json-reader.js").jsonReader();
-const { Schema } = mongoose;
-var ConnectionStringDB = "";
-var model = "";
+const {Schema} = mongoose;
+
+var configMongo = {
+    useNewUrlParser: true,
+    useCreateIndex: true,
+    useUnifiedTopology: true,
+    useFindAndModify: false
+}
+
 const mongodb = {
     callback: false,
     options: {
@@ -14,44 +19,39 @@ const mongodb = {
             options: ""
         },
         collection: "",
-        nameModel: "",
-        actiondb: "",
-        Schemadb: [],
+        model: "",
+        queryType: "",
+        schema: [],
         parameter: []
     },
     get: function (message, callback) {
-        var model = this.options.nameModel;
-
         this.connect = function () {
-            if (this.options.server.user != "" && this.options.server.password != "" && this.options.server.host != "" && this.options.server.db != "") {
-                mongoose.connect(stringConnectionUrl(this.options.server), {
-                    useNewUrlParser: true,
-                    useCreateIndex: true,
-                    useUnifiedTopology: true
-                })
+            if (validateConnect(this.options) == true) {
+                mongoose.connect(stringConnectionUrl(this.options), configMongo)
                     .then(() => this.connectSuccess())
                     .catch(err => {
                         throw err;
                     })
             } else {
-                throw new Error("Mongodb Conection Failed  XX.");
+                throw new Error("Mongodb Conection Failed");
             }
         }
 
         this.connectSuccess = function () {
-            if (model != "" && model != undefined) {
-                model = mongoose.Schema(this.options.Schemadb[0], { collection: this.options.collection })
+            if (this.options.model != "" && this.options.model != undefined) {
+              var Model = mongoose.Schema(this.options.schema[0], {
+                    collection: this.options.collection
+                })
             } else {
-                throw new Error("The  models is important ");
+                throw new Error("The  models is undefined ");
             }
 
-            MongoCommands[this.options.actiondb]({
+            MongoCommands[this.options.queryType]({
                 collection: this.options.collection,
-                model: model,
+                model: Model,
                 message: message
             }, callback);
         }
-
 
         this.connect()
     }
@@ -59,36 +59,39 @@ const mongodb = {
 
 var MongoCommands = {
     "save": new MongoActions().save,
-    "find": new MongoActions().getAll,
-    "update": new MongoActions().update,
-    "delete": new MongoActions().delete,
-
+    "find": new MongoActions().find,
+    "updateOne": new MongoActions().updateOne,
+    "findByIdAndRemove": new MongoActions().findByIdAndRemove,
+    "count": new MongoActions().count,
+    "countDocument": new MongoActions().countDocument
 }
 
 
 function MongoActions() {
 
     this.save = function (options, send) {
-        var modelMongoDbSave = mongoose.model(options.collection, options.model);
-        let SaveMongo = new modelMongoDbSave(options.message);
-        SaveMongo.save((err, save) => {
+        var modelMongodbSave = mongoose.model(options.collection, options.model);
+        let SaveMongo = new modelMongodbSave(options.message.save);
+        SaveMongo.save( function (err, save) {
+            console.log(save)
             if (err) {
-                send({ ok: false }, err);
+                send({},err);
             } else {
                 send({
                     ok: true,
-                    message: false,
                     result: save
                 });
             }
         });
     }
 
-    this.getAll = function (options, send) {
-        modelMongoDbFind = mongoose.model(options.collection, options.model);
-        modelMongoDbFind.find(options.message).exec((err, find) => {
+    this.find = function (options, send) {
+        modelMongodbFind = mongoose.model(options.collection, options.model);
+        modelMongodbFind.find(options.message.find).exec((err, find) => {
             if (err) {
-                send({ ok: false }, err);
+                send({
+                    ok: false
+                }, err);
             }
             send({
                 ok: true,
@@ -98,39 +101,99 @@ function MongoActions() {
     }
 
 
-    this.update = function (options, send) {
-        // console.log(options);
-        modelMongoDbUpdate = mongoose.model(options.collection, options.model);
-        var myId = {
-            _id: options
+    this.updateOne = function (options, send) {
+        modelMongodbUpdate = mongoose.model(options.collection, options.model);
+        var FindId = {
+            _id: options.message.findupdate
         };
-        console.log(myId)
-        var newvalues = {
-            $set: options.message.update
-        };
-        // console.log(newvalues)
 
-        // modelMongoDbUpdate.updateOne(myId, newvalues, {}, (err, update) => {
-        //     if (err) {
-        //         send({
-        //             ok: false,
-        //         }, err);
-        //     }
-        //     res.json({
-        //         ok: true,
-        //         result: update
-        //     });
-        // });
+        var newValues = {
+            $set: options.message.newData
+        };
+
+        modelMongodbUpdate.updateOne(FindId, newValues, {}, (err, update) => {
+            if (err) {
+                send({
+                    ok: false,
+                }, err);
+            }
+            send({
+                ok: true,
+                result: update
+            });
+        });
     }
 
+    this.findByIdAndRemove = function (options, send) {
+        modelMongodbDelete = mongoose.model(options.collection, options.model);
+        var valueDelete = options.message.findByIdAndRemove._id;
+        modelMongodbDelete.findByIdAndRemove(valueDelete, (err, deleteData) => {
+            if (err) {
+                send({}, err);
+            }
+            send({
+                ok: true,
+                result: deleteData
+            });
+        });
+    }
+
+    this.count = function (options,send){
+        modelMongodbCount = mongoose.model(options.collection, options.model);
+        modelMongodbCount.find(options.message.find).count().exec((err, find) => {
+            if (err) {
+                send({
+                    ok: false
+                }, err);
+            }
+            send({
+                ok: true,
+                result: find
+            });
+        });
+    }
+
+    this.countDocument = function (options,send){
+        modelMongodbCountDocument = mongoose.model(options.collection, options.model);
+        modelMongodbCountDocument.countDocuments(options.message.find).exec((err, find) => {
+            if (err) {
+                send({
+                    ok: false
+                }, err);
+            }
+            send({
+                ok: true,
+                result: find
+            });
+        });
+    }
 
 }
 
-
 var stringConnectionUrl = function (ConnectionStringDB) {
-    var conectionString = `mongodb+srv://${ConnectionStringDB.user}:${ConnectionStringDB.password}@${ConnectionStringDB.host}/${ConnectionStringDB.db}?${ConnectionStringDB.options}`;
+    if (ConnectionStringDB.mode === "" || ConnectionStringDB.mode === "prod") {
+        var conectionString = `mongodb+srv://${ConnectionStringDB.server.user}:${ConnectionStringDB.server.password}@${ConnectionStringDB.server.host}/${ConnectionStringDB.server.db}?${ConnectionStringDB.server.options}`;
+        return conectionString;
+    } else {
+        var conectionString = ConnectionStringDB.server.host + "/" + ConnectionStringDB.server.db;
+        return conectionString;
+    }
 
-    return conectionString;
+}
+
+var validateConnect = function (validate) {
+    if (validate.mode === "dev" && validate.mode != "" && validate.mode != "prod") {
+        if (validate.server.host != "" && validate.server.db != "") {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    if (validate.server.user != "" && validate.server.password != "" && validate.server.host != "" && validate.server.db != "") {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 exports.mongodb = function () {
